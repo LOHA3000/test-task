@@ -122,13 +122,14 @@ class FSMContext:  # Finite State Machine
         self._boat = boat
 
         self._init_transitions()
+        self._init_strokes_case_map()
 
     @property
     def state(self):
         return self.boat_state, self.move_state
 
     def _init_transitions(self):
-        transitions = (
+        self._transitions = (
             ('launch', ((BoatState.on_land, MoveState.aground),
                         (BoatState.sailing, MoveState.aground)),
                  (BoatState.sailing, MoveState.drifting), None),
@@ -198,7 +199,8 @@ class FSMContext:  # Finite State Machine
                  (BoatState.sailing, MoveState.drifting), self._boat.have_anchor),
             ('cut_off_anchor', (BoatState.anchored, MoveState.drifting),
                  (BoatState.sailing, MoveState.drifting), self._boat.stucked_anchor))
-        for descriptor, boat_state_from, boat_state_to, case in transitions:
+        self._transitions_names = tuple(map(lambda x: x[0], self._transitions))
+        for descriptor, boat_state_from, boat_state_to, case in self._transitions:
             if case:
                 self._boat.__setattr__(descriptor, Transition(
                     self, descriptor, boat_state_from, boat_state_to, case))
@@ -206,7 +208,80 @@ class FSMContext:  # Finite State Machine
                 self._boat.__setattr__(descriptor, Transition(
                     self, descriptor, boat_state_from, boat_state_to))
 
+    def _init_strokes_case_map(self):
+        # fb = 0 - вперёд
+        #      1 - ни вперёд, ни назад
+        #      2 - назад
+
+        # lr = 0 - влево
+        #      1 - ни вправо, ни влево
+        #      2 - вправо
+
+        # '' - не предполагается такое событие
+        
+        self._strokes_case_map = {
+            MoveState.drifting: (
+                ('sail_forward_with_heading_left', 'sail_forward', 'sail_forward_with_heading_right'),
+                ('spin_left', '', 'spin_right'),
+                ('sail_backward_with_heading_left', 'sail_backward', 'sail_backward_with_heading_right')),
+            MoveState.forward: (
+                ('sail_forward_with_heading_left', 'sail_forward', 'sail_forward_with_heading_right'),
+                ('sail_forward_with_heading_left', '', 'sail_forward_with_heading_right'),
+                ('sail_forward_with_heading_left', 'get_to_drift', 'sail_forward_with_heading_right')),
+            MoveState.forward.heading_to_the_left: (
+                ('sail_forward_with_heading_left', 'sail_forward', 'sail_forward'),
+                ('spin_left', '', 'sail_forward'),
+                ('spin_left', 'get_to_drift', 'get_to_drift')),
+            MoveState.forward.heading_to_the_right: (
+                ('sail_forward', 'sail_forward', 'sail_forward_with_heading_right'),
+                ('sail_forward', '', 'spin_right'),
+                ('get_to_drift', 'get_to_drift', 'spin_right')),
+            MoveState.backward: (
+                ('sail_backward_with_heading_left', 'get_to_drift', 'sail_backward_with_heading_right'),
+                ('sail_backward_with_heading_left', '', 'sail_backward_with_heading_right'),
+                ('sail_backward_with_heading_left', 'sail_backward', 'sail_backward_with_heading_right')),
+            MoveState.backward.heading_to_the_left: (
+                ('spin_left', 'get_to_drift', 'get_to_drift'),
+                ('spin_left', '', 'sail_backward'),
+                ('sail_backward_with_heading_left', 'sail_backward', 'sail_backward')),
+            MoveState.backward.heading_to_the_right: (
+                ('get_to_drift', 'get_to_drift', 'spin_right'),
+                ('sail_backward', '', 'spin_right'),
+                ('sail_backward', 'sail_backward', 'sail_backward_with_heading_right')),
+            MoveState.spin_left: (
+                ('spin_left', 'get_to_drift', 'get_to_drift'),
+                ('spin_left', '', 'get_to_drift'),
+                ('spin_left', 'get_to_drift', 'get_to_drift')),
+            MoveState.spin_right: (
+                ('get_to_drift', 'get_to_drift', 'spin_right'),
+                ('get_to_drift', '', 'spin_right'),
+                ('get_to_drift', 'get_to_drift', 'spin_right'))}
+
     def change(self, heading_left, heading_right, forward, backward):
+        # если лодка на суше или закреплена или на мели
         if (self.boat_state in (BoatState.on_land, BoatState.anchored, BoatState.moored) or
                 self.move_state == MoveState.aground):
             return
+        
+        # если не гребёт ни одно из вёсел
+        if forward + backward == 0:
+            return
+        # бесполезные удары вёсел по воде
+        if forward == backward and heading_left == heading_right:
+                return
+
+        fb = (forward == backward) + (forward < backward) * 2
+        lr = (heading_left == heading_right) + (heading_left < heading_right) * 2
+
+        # fb = 0 - вперёд
+        #      1 - ни вперёд, ни назад
+        #      2 - назад
+
+        # lr = 0 - влево
+        #      1 - ни вправо, ни влево
+        #      2 - вправо
+
+        method = self._strokes_case_map[self.move_state][fb][lr]
+        if method not in self._transitions_names:
+            raise TransitionMethodDoesNotExistError(method)
+        self._boat.__dict__[method]()

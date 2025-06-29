@@ -165,5 +165,4 @@ class Boat:
         forward = number_stright_left + number_stright_right
         backward = number_reverse_left + number_reverse_right
 
-        self.state.change(heading_left, heading_right, forward, backward)
-
+        self._state.change(heading_left, heading_right, forward, backward)

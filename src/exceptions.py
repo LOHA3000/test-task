@@ -98,4 +98,12 @@ class AnchorAlreadyExistsError(Exception):
 class NoAnchorError(Exception):    
     def __str__(self):
         return 'У лодки нет якоря'
+
+
+class TransitionMethodDoesNotExistError(Exception):
+    def __init__(self, descriptor):
+        self._descriptor = descriptor
+        
+    def __str__(self):
+        return f'"{self._descriptor}" не является методом смены состояния лодки'
     
