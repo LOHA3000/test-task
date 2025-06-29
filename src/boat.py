@@ -1,48 +1,70 @@
 from states import FSMContext
-from gears import Oar
+from gears import Oar, Anchor
 from exceptions import *
 
 
 class Boat:
     side_shifts = {'right': 'left', 'left': 'right'}
     
-    def __init__(self, state=None, anchor=None):
-        if state is None:
+    def __init__(self, initial_state=None, anchor=None):
+        if initial_state is None:
             state = FSMContext(self)
         else:
-            state.boat = self
+            state = FSMContext(self, *initial_state)
             
         self._state = state
-        self._anchor = anchor
+        self._anchor = None
+        if not anchor is None:
+            self.add_anchor(anchor)
 
-        self.__oars = {
+        self._oars = {
             'right': [],
             'left': []}
 
-    @property
-    def has_anchor(self):
+    def add_anchor(self, anchor=None):
+        if not self._anchor is None:
+            raise AnchorAlreadyExistsError
+            
+        if anchor is None:
+            anchor = Anchor()
+        elif not type(anchor) is Anchor:
+            raise InvalidAnchorTypeError
+            
+        self._anchor = anchor
+
+    def remove_anchor(self):
+        if self._anchor is None:
+            raise NoAnchorError
+            
+        self._anchor = None
+
+    def have_anchor(self):
         return not self._anchor is None
+
+    def stucked_anchor(self):
+        self._anchor = None
+        return True
 
     def __count_oars(self, side):
         if not side in ('left', 'right'):
-            raise ILLegalBoatSideName
+            raise ILLegalBoatSideNameError
         
-        return len(self.__oars[side])
+        return len(self._oars[side])
 
     def __add_oar(self, side, number=1, oars=tuple()):
         if not side in ('left', 'right'):
-            raise ILLegalBoatSideName
+            raise ILLegalBoatSideNameError
         
         if not type(number) is int:
-            raise ILLegalNumberOfOars
+            raise ILLegalNumberOfOarsError
         if number == 0:
-            raise ZeroNumberOfOars
+            raise ZeroNumberOfOarsError
         if number < 0:
-            raise NegativeNumberOfOars
+            raise NegativeNumberOfOarsError
 
         if (not (hasattr(oars, '__getitem__') and hasattr(oars, '__len__')) or
                 (len(oars) and not type(oars[0]) is Oar)):
-            raise ILLegalOarsListType
+            raise ILLegalOarsListTypeError
         
         if len(oars) < 1:
             oars = [Oar() for i in range(number)]
@@ -51,29 +73,29 @@ class Boat:
             
         for i in range(number):
             new_oar = oars[i]
-            self.__oars[side].append(new_oar)
+            self._oars[side].append(new_oar)
 
     def __remove_oar(self, side, number=1):
         if not side in ('left', 'right'):
-            raise ILLegalBoatSideName
+            raise ILLegalBoatSideNameError
         
         if not type(number) is int:
-            raise ILLegalNumberOfOars
+            raise ILLegalNumberOfOarsError
         if number == 0:
-            raise ZeroNumberOfOars
+            raise ZeroNumberOfOarsError
         if number < 0:
-            raise NegativeNumberOfOars
+            raise NegativeNumberOfOarsError
         if number > self.__count_oars(side):
-            raise OarsOverdraft(side, self.__count_oars(side), number)
+            raise OarsOverdraftError(side, self.__count_oars(side), number)
         
         removed = []
         for i in range(number):
-            removed.append(self.__oars[side].pop(0))
+            removed.append(self._oars[side].pop(0))
         return removed
 
     def __shift_oar(self, side, number):
         if not side in ('left', 'right'):
-            raise ILLegalBoatSideName
+            raise ILLegalBoatSideNameError
         
         shift_from_side = side
         shift_to_side = self.side_shifts[side]
@@ -106,3 +128,42 @@ class Boat:
 
     def shift_oar_from_left(self, number=1):
         self.__shift_oar('left', number)
+
+    @property
+    def state(self):
+        return self._state.state
+
+    @property
+    def state_as_string(self):
+        return ', '.join(map(str, self._state.state))
+
+    def stroke(self, number_stright_left=0, number_stright_right=0,
+               number_reverse_left=0, number_reverse_right=0):
+        
+        if number_stright_left < 0:
+            raise NegativeNumberOfOarsError
+        if number_stright_right < 0:
+            raise NegativeNumberOfOarsError
+        if number_reverse_left < 0:
+            raise NegativeNumberOfOarsError
+        if number_reverse_right < 0:
+            raise NegativeNumberOfOarsError
+
+        if number_stright_left + number_reverse_left > self.oars_on_left:
+            raise OarsOverdraftError('left', self.oars_on_left, number_stright_left + number_reverse_left)
+        elif number_stright_right + number_reverse_right > self.oars_on_right:
+            raise OarsOverdraftError('right', self.oars_on_right, number_stright_right + number_reverse_right)
+
+        # прямой гребок слева вращает лодку вправо
+        # прямой гребок справа вращает лодку влево
+        # обратный гребок слева вращает лодку влево
+        # обратный гребок справа вращает лодку вправо
+
+        heading_left = number_stright_right + number_reverse_left
+        heading_right = number_stright_left + number_reverse_right
+
+        forward = number_stright_left + number_stright_right
+        backward = number_reverse_left + number_reverse_right
+
+        self.state.change(heading_left, heading_right, forward, backward)
+

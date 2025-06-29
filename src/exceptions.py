@@ -1,31 +1,31 @@
-class ZeroNumberOfOars(Exception):
+class ZeroNumberOfOarsError(Exception):
     def __str__(self):
         return 'Количество вёсел не может быть равным нулю'
 
 
-class NegativeNumberOfOars(Exception):
+class NegativeNumberOfOarsError(Exception):
     def __str__(self):
         return 'Количество вёсел не может быть отрицательным числом'
 
 
-class ILLegalNumberOfOars(Exception):
+class ILLegalNumberOfOarsError(Exception):
     def __str__(self):
         return 'Количество вёсел не может быть ничем, кроме натурального числа типа int'
 
 
-class ILLegalBoatSideName(Exception):
+class ILLegalBoatSideNameError(Exception):
     def __str__(self):
         return 'Сторона лодки может быть задана только как правая и левая значениями ' \
                'right и left соответственно'
 
 
-class ILLegalOarsListType(Exception):
+class ILLegalOarsListTypeError(Exception):
     def __str__(self):
         return 'Список вёсел должен быть указан как итерируемый объет, ' \
-               'содержащий объекты класса Oar'
+               'содержащий объекты класса gears.Oar'
 
 
-class OarsOverdraft(Exception):
+class OarsOverdraftError(Exception):
     sides_locale = {'left': 'слева', 'right': 'справа'}
     
     def __init__(self, side, actual, requested):
@@ -52,3 +52,50 @@ class OarsOverdraft(Exception):
     def __str__(self):
         return f'Количество вёсел {self._side} меньше - {self._actual}, '\
                f'чем указанное - {self._requested}'
+
+
+class ILLegalStateTypeError(Exception):
+    def __str__(self):
+        return 'состояние должно быть объектом states.BaseState'
+
+
+class ILLegalStatePairRepresentationError(Exception):
+    def __init__(self, descriptor, state_pair):
+        self._descriptor = descriptor
+        self._representation = repr(state_pair)
+        
+    def __str__(self):
+        return f'Некорректное представление состояния "{self._descriptor}": {self._representation}'
+
+
+class ILLegalTransitionError(Exception):
+    def __init__(self, descriptor, source):
+        self._descriptor = descriptor
+        self._source = source
+        
+    def __str__(self):
+        return f'Нельзя выполнить "{self._descriptor}" из текущего состояния "{self._source}"'
+
+
+class TransitionGearRequirementsError(Exception):
+    def __init__(self, descriptor):
+        self._descriptor = descriptor
+        
+    def __str__(self):
+        return f'Для выполнения "{self._descriptor}" в лодке не хватает оборудования'
+
+
+class InvalidAnchorTypeError(Exception):
+    def __str__(self):
+        return 'Якорь должен быть объектом типа gears.Anchor'
+
+
+class AnchorAlreadyExistsError(Exception):
+    def __str__(self):
+        return 'У лодки уже есть якорь'
+
+
+class NoAnchorError(Exception):    
+    def __str__(self):
+        return 'У лодки нет якоря'
+    

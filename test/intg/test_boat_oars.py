@@ -22,10 +22,10 @@ def test_oar_shift(add_to_left, add_to_right,
 
 @pytest.mark.parametrize(
     "add_to_left, add_to_right, shift_from_left, shift_from_right, exception",
-    [(4, 2, 0, 0, ZeroNumberOfOars),
-     (4, 2, -4, -3, NegativeNumberOfOars),
-     (4, 2, 1.5, 1.0, ILLegalNumberOfOars),
-     (2, 3, 3, 4, OarsOverdraft)])
+    [(4, 2, 0, 0, ZeroNumberOfOarsError),
+     (4, 2, -4, -3, NegativeNumberOfOarsError),
+     (4, 2, 1.5, 1.0, ILLegalNumberOfOarsError),
+     (2, 3, 3, 4, OarsOverdraftError)])
 def test_oar_shift_exception(add_to_left, add_to_right,
                              shift_from_left, shift_from_right,
                              exception):

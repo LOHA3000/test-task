@@ -21,9 +21,9 @@ def test_oar_add_remove(add_to_left, add_to_right,
 
 @pytest.mark.parametrize(
     "add_to_left, add_to_right, remove_from_left, remove_from_right, exception",
-    [(0, 0, 0, 0, ZeroNumberOfOars),
-     (-2, -1, -4, -3, NegativeNumberOfOars),
-     (2.1, 3.4, 1.5, 1.0, ILLegalNumberOfOars)])
+    [(0, 0, 0, 0, ZeroNumberOfOarsError),
+     (-2, -1, -4, -3, NegativeNumberOfOarsError),
+     (2.1, 3.4, 1.5, 1.0, ILLegalNumberOfOarsError)])
 def test_oar_add_remove_exception(add_to_left, add_to_right,
                                   remove_from_left, remove_from_right,
                                   exception):
@@ -51,8 +51,8 @@ def test_oar_add_group(add_to_left, add_to_right, count_on_left, count_on_right)
 
 @pytest.mark.parametrize(
     "add_to_left, add_to_right, exception",
-    [(['весло', ...], [42, 13], ILLegalOarsListType),
-     (..., {Oar()}, ILLegalOarsListType)])
+    [(['весло', ...], [42, 13], ILLegalOarsListTypeError),
+     (..., {Oar()}, ILLegalOarsListTypeError)])
 def test_oar_add_group_exception(add_to_left, add_to_right, exception):
     boat = Boat()
     with pytest.raises(exception):
